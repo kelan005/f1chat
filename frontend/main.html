@@ -161,7 +161,7 @@
     // Pobierz profil z backendu
     async function loadProfile() {
       try {
-        const res = await fetch(`http://localhost:5000/auth/profile/${userId}`);
+        const res = await fetch(`https://f1chat.onrender.com/auth/profile/${userId}`);
         const data = await res.json();
 
         if (data.profile && data.profile.nick) {
@@ -190,7 +190,7 @@
       };
 
       try {
-        const res = await fetch('http://localhost:5000/auth/profile', {
+        const res = await fetch('https://f1chat.onrender.com/auth/profile', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(profile)
@@ -217,7 +217,7 @@
 
     async function loadMessages() {
       try {
-        const res = await fetch('http://localhost:5000/chat/messages');
+        const res = await fetch('https://f1chat.onrender.com/chat/messages');
         const data = await res.json();
         messagesDiv.innerHTML = '';
         data.forEach(msg => {
@@ -234,7 +234,7 @@
       const text = messageText.value.trim();
       if (!text) return;
       try {
-        await fetch('http://localhost:5000/chat/send', {
+        await fetch('https://f1chat.onrender.com/chat/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId, text })
