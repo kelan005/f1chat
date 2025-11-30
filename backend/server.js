@@ -25,3 +25,22 @@ mongoose.connect(process.env.MONGO_URI)
 // Start serwera
 const PORT = 5000;
 app.listen(PORT, () => console.log(`🚀 Server działa na http://localhost:${PORT}`));
+
+
+// Endpoint do aktualizacji avatara
+app.put("/auth/update/:username", async (req, res) => {
+  try {
+    const { avatar } = req.body;
+    const user = await mongoose.model("User").findOneAndUpdate(
+      { username: req.params.username },
+      { avatar },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Nie znaleziono użytkownika" });
+    }
+    res.json({ success: true, message: "Avatar zaktualizowany", user });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
