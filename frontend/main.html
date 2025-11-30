@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>F1Chat – Main</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; }
+    header {
+      background: #2a5298;
+      color: white;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+    }
+    header button {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 16px;
+      margin: 0 20px;
+      cursor: pointer;
+    }
+    header button.active {
+      border-bottom: 2px solid yellow;
+    }
+    #chatSection, #friendsSection {
+      display: none;
+      padding: 20px;
+    }
+    #messages {
+      border: 1px solid #ccc;
+      height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #f9f9f9;
+    }
+    #messages p { margin: 5px 0; }
+    #chatInput { display: flex; }
+    #chatInput input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px 0 0 5px;
+    }
+    #chatInput button {
+      padding: 10px;
+      border: none;
+      background: #2a5298;
+      color: white;
+      border-radius: 0 5px 5px 0;
+      cursor: pointer;
+    }
+    #welcomeForm {
+      display: none;
+      border: 1px solid #ccc;
+      padding: 20px;
+      max-width: 300px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 10px;
+    }
+    #profileBox {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      background: #eee;
+      padding: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #profileMenu {
+      display: none;
+      position: absolute;
+      bottom: 40px;
+      left: 0;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 5px;
+    }
+    #profileMenu a { display: block; padding: 5px; text-decoration: none; color: black; }
+    #profileMenu a:hover { background: #ddd; }
+  </style>
+</head>
+<body>
+  <header>
+    <button id="communityBtn" class="active">Czat społeczności</button>
+    <button id="friendsBtn">Znajomi</button>
+  </header>
+
+  <!-- Formularz powitalny -->
+  <div id="welcomeForm">
+    <h2>Uzupełnij swój profil</h2>
+    <form id="profileForm">
+      <input type="text" id="nick" placeholder="Nick" required /><br>
+      <input type="number" id="age" placeholder="Wiek" required /><br>
+      <select id="gender" required>
+        <option value="">Wybierz płeć</option>
+        <option value="M">Mężczyzna</option>
+        <option value="K">Kobieta</option>
+        <option value="Inne">Inne</option>
+      </select><br>
+      <textarea id="about" placeholder="Kilka słów o sobie"></textarea><br>
+      <button type="submit">Zapisz</button>
+    </form>
+  </div>
+
+  <!-- Sekcja czatu społeczności -->
+  <div id="chatSection">
+    <h2>Czat społeczności F1</h2>
+    <div id="messages"></div>
+    <div id="chatInput">
+      <input type="text" id="messageText" placeholder="Napisz wiadomość..." />
+      <button id="sendBtn">Wyślij</button>
+    </div>
+  </div>
+
+  <!-- Sekcja znajomych -->
+  <div id="friendsSection">
+    <h2>Twoi znajomi</h2>
+    <p>Lista znajomych pojawi się tutaj 🚧</p>
+  </div>
+
+  <!-- Box profilu -->
+  <div id="profileBox" style="display:none;">
+    <span id="profileName"></span>
+    <div id="profileMenu">
+      <a href="#">Ustawienia</a>
+      <a href="index.html">Wyloguj</a>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+
+    const welcomeForm = document.getElementById('welcomeForm');
+    const profileBox = document.getElementById('profileBox');
+    const profileName = document.getElementById('profileName');
+    const profileMenu = document.getElementById('profileMenu');
+
+    const communityBtn = document.getElementById('communityBtn');
+    const friendsBtn = document.getElementById('friendsBtn');
+    const chatSection = document.getElementById('chatSection');
+    const friendsSection = document.getElementById('friendsSection');
+
+    communityBtn.addEventListener('click', () => {
+      communityBtn.classList.add('active');
+      friendsBtn.classList.remove('active');
+      chatSection.style.display = 'block';
+      friendsSection.style.display = 'none';
+    });
+
+    friendsBtn.addEventListener('click', () => {
+      friendsBtn.classList.add('active');
+      communityBtn.classList.remove('active');
+      friendsSection.style.display = 'block';
+      chatSection.style.display = 'none';
+    });
+
+    // Pobierz profil z backendu
+    async function loadProfile() {
+      try {
+        const res = await fetch(`http://localhost:5000/auth/profile/${userId}`);
+        const data = await res.json();
+
+        if (data.profile && data.profile.nick) {
+          profileName.textContent = data.profile.nick;
+          profileBox.style.display = 'block';
+          chatSection.style.display = 'block'; // pokaż czat od razu
+        } else {
+          welcomeForm.style.display = 'block'; // pokaż formularz powitalny
+          chatSection.style.display = 'none';  // ukryj czat dopóki nie zapiszesz profilu
+        }
+      } catch (err) {
+        console.error('Błąd pobierania profilu:', err);
+      }
+    }
+    loadProfile();
+
+    // Obsługa formularza profilu
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const profile = {
+        userId,
+        nick: document.getElementById('nick').value,
+        age: document.getElementById('age').value,
+        gender: document.getElementById('gender').value,
+        about: document.getElementById('about').value
+      };
+
+      try {
+        const res = await fetch('http://localhost:5000/auth/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profile)
+        });
+
+        const data = await res.json();
+        if (data.error) {
+          alert(data.error);
+        } else if (data.profile) {
+          profileName.textContent = data.profile.nick;
+          welcomeForm.style.display = 'none';
+          profileBox.style.display = 'block';
+          chatSection.style.display = 'block'; // pokaż czat po zapisaniu profilu
+        }
+      } catch (err) {
+        console.error('Błąd zapisu profilu:', err);
+      }
+    });
+
+    // Obsługa czatu społeczności
+    const messagesDiv = document.getElementById('messages');
+    const sendBtn = document.getElementById('sendBtn');
+    const messageText = document.getElementById('messageText');
+
+    async function loadMessages() {
+      try {
+        const res = await fetch('http://localhost:5000/chat/messages');
+        const data = await res.json();
+        messagesDiv.innerHTML = '';
+        data.forEach(msg => {
+          const p = document.createElement('p');
+          p.textContent = `${msg.nick}: ${msg.text}`;
+          messagesDiv.appendChild(p);
+        });
+      } catch (err) {
+        console.error('Błąd pobierania wiadomości:', err);
+      }
+    }
+
+    sendBtn.addEventListener('click', async () => {
+      const text = messageText.value.trim();
+      if (!text) return;
+      try {
+        await fetch('http://localhost:5000/chat/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, text })
+        });
+        messageText.value = '';
+        loadMessages();
+      } catch (err) {
+        console.error('Błąd wysyłania wiadomości:', err);
+      }
+    });
+
+    // Odświeżaj wiadomości co 3 sekundy
+    setInterval(loadMessages, 3000);
+
+    // Kliknięcie w profil → pokaż menu
+    profileBox.addEventListener('click', () => {
+      profileMenu.style.display = profileMenu.style.display === 'block' ? 'none' : 'block';
+    });
+  </script>
+</body>
+</html>
