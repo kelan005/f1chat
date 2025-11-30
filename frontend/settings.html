@@ -2,34 +2,179 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Ustawienia profilu</title>
+  <title>F1Chat – Ustawienia</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; padding:20px; background:#f9f9f9; }
+    h1 { margin-bottom: 20px; }
+    #settingsMenu {
+      display: flex;
+      flex-direction: column;
+      width: 200px;
+      float: left;
+      margin-right: 20px;
+    }
+    #settingsMenu button {
+      padding: 10px;
+      margin-bottom: 10px;
+      border: none;
+      background: #2a5298;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    #settingsMenu button.active {
+      background: #1a3570;
+    }
+    #settingsContent {
+      margin-left: 220px;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+    form input, form select, form textarea {
+      display: block;
+      margin-bottom: 10px;
+      padding: 8px;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    form button {
+      padding: 10px;
+      background: #2a5298;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-  <h1>Ustawienia profilu</h1>
-  
-  <form id="settingsForm">
-    <label for="avatar">Avatar:</label>
-    <input type="text" id="avatar" placeholder="Wklej link do obrazka">
-    
-    <button type="submit">Zapisz</button>
-  </form>
+  <h1>Ustawienia</h1>
+
+  <div id="settingsMenu">
+    <button id="profileSettingsBtn" class="active">Ustawienia profilu</button>
+    <button id="accountSettingsBtn">Ustawienia konta</button>
+  </div>
+
+  <div id="settingsContent">
+    <!-- Sekcja profilu -->
+    <div id="profileSettings">
+      <h2>Ustawienia profilu</h2>
+      <form id="profileForm">
+        <input type="text" id="nick" placeholder="Nick" required />
+        <input type="number" id="age" placeholder="Wiek" required />
+        <select id="gender" required>
+          <option value="">Wybierz płeć</option>
+          <option value="M">Mężczyzna</option>
+          <option value="K">Kobieta</option>
+          <option value="Inne">Inne</option>
+        </select>
+        <textarea id="about" placeholder="Kilka słów o sobie"></textarea>
+        <button type="submit">Zapisz profil</button>
+      </form>
+    </div>
+
+    <!-- Sekcja konta -->
+    <div id="accountSettings" style="display:none;">
+      <h2>Ustawienia konta</h2>
+      <form id="passwordForm">
+        <input type="password" id="oldPassword" placeholder="Stare hasło" required />
+        <input type="password" id="newPassword" placeholder="Nowe hasło" required />
+        <button type="submit">Zmień hasło</button>
+      </form>
+      <hr>
+      <form id="emailForm">
+        <input type="email" id="newEmail" placeholder="Nowy adres e-mail" required />
+        <button type="submit">Zmień e-mail</button>
+      </form>
+      <hr>
+      <button style="background:red;">Usuń konto</button>
+    </div>
+  </div>
 
   <script>
     const API_URL = "https://f1chat.onrender.com";
-    const username = localStorage.getItem("username"); // zakładam że zapisujesz nick po logowaniu
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
 
-    document.getElementById("settingsForm").addEventListener("submit", async (e) => {
+    const profileSettingsBtn = document.getElementById('profileSettingsBtn');
+    const accountSettingsBtn = document.getElementById('accountSettingsBtn');
+    const profileSettings = document.getElementById('profileSettings');
+    const accountSettings = document.getElementById('accountSettings');
+
+    // Przełączanie zakładek
+    profileSettingsBtn.addEventListener('click', () => {
+      profileSettingsBtn.classList.add('active');
+      accountSettingsBtn.classList.remove('active');
+      profileSettings.style.display = 'block';
+      accountSettings.style.display = 'none';
+    });
+
+    accountSettingsBtn.addEventListener('click', () => {
+      accountSettingsBtn.classList.add('active');
+      profileSettingsBtn.classList.remove('active');
+      accountSettings.style.display = 'block';
+      profileSettings.style.display = 'none';
+    });
+
+    // Obsługa formularza profilu
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const avatar = document.getElementById("avatar").value;
+      const profile = {
+        userId,
+        nick: document.getElementById('nick').value,
+        age: document.getElementById('age').value,
+        gender: document.getElementById('gender').value,
+        about: document.getElementById('about').value
+      };
+      try {
+        const res = await fetch(`${API_URL}/auth/profile`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profile)
+        });
+        const data = await res.json();
+        alert(data.message || data.error);
+      } catch (err) {
+        console.error('Błąd zapisu profilu:', err);
+      }
+    });
 
-      const res = await fetch(`${API_URL}/auth/update/${username}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ avatar })
-      });
+    // Obsługa zmiany hasła
+    document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const oldPassword = document.getElementById('oldPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      try {
+        const res = await fetch(`${API_URL}/auth/change-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, oldPassword, newPassword })
+        });
+        const data = await res.json();
+        alert(data.message || data.error);
+      } catch (err) {
+        console.error('Błąd zmiany hasła:', err);
+      }
+    });
 
-      const data = await res.json();
-      alert(data.message || data.error);
+    // Obsługa zmiany e-maila
+    document.getElementById('emailForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newEmail = document.getElementById('newEmail').value;
+      try {
+        const res = await fetch(`${API_URL}/auth/change-email`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, newEmail })
+        });
+        const data = await res.json();
+        alert(data.message || data.error);
+      } catch (err) {
+        console.error('Błąd zmiany e-maila:', err);
+      }
     });
   </script>
 </body>
